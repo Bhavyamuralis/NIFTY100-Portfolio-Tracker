@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NIFTY 100 Portfolio Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="bg-surface text-primary">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">N</div>
+      <div>
+        <div class="logo-title">NIFTY100</div>
+        <div class="logo-sub">Portfolio Tracker</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-item" data-view="portfolio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h18v4H3z"/><path d="M3 10h18v4H3z"/><path d="M3 17h18v4H3z"/></svg>
+        Portfolio
+      </a>
+      <a href="#" class="nav-item" data-view="transactions">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v18M3 12h18"/><path d="M17 7l-5-4-5 4M7 17l5 4 5-4"/></svg>
+        Transactions
+      </a>
+      <a href="#" class="nav-item" data-view="analytics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 20l4-8 4 4 4-6 4 10"/></svg>
+        Analytics
+      </a>
+      <a href="#" class="nav-item" data-view="rebalance">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a9 9 0 110 18A9 9 0 0112 3z"/><path d="M12 7v5l3 3"/></svg>
+        Rebalance
+      </a>
+      <a href="#" class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="refresh-status">
+        <div id="refreshDot" class="refresh-dot"></div>
+        <span id="refreshLabel">Live • Refreshes in <span id="countdown">60</span>s</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Dashboard View -->
+    <div id="view-dashboard" class="view active">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Portfolio Dashboard</h1>
+          <p class="page-sub" id="lastUpdated">Fetching data…</p>
+        </div>
+        <div class="header-actions">
+          <button id="refreshBtn" class="btn-refresh" onclick="forceRefresh()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            Refresh
+          </button>
+          <button class="btn-primary" onclick="showAddTransaction()">+ Add Trade</button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="cards-grid">
+        <div class="card card-highlight">
+          <div class="card-label">Portfolio Value</div>
+          <div class="card-value" id="portfolioValue">—</div>
+          <div class="card-delta" id="portfolioDelta">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Invested</div>
+          <div class="card-value" id="totalInvested">—</div>
+          <div class="card-delta" id="investedChange">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">NAV</div>
+          <div class="card-value" id="navValue">—</div>
+          <div class="card-delta" id="navChange">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">XIRR</div>
+          <div class="card-value" id="xirrValue">—</div>
+          <div class="card-sub">Annualised Return</div>
+        </div>
+        <div class="card">
+          <div class="card-label">P&L</div>
+          <div class="card-value" id="pnlValue">—</div>
+          <div class="card-delta" id="pnlPct">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">NIFTY 100</div>
+          <div class="card-value" id="indexValue">—</div>
+          <div class="card-delta" id="indexChange">—</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-row">
+        <div class="chart-card chart-wide">
+          <div class="chart-header">
+            <div class="chart-title">NAV History</div>
+            <div class="chart-tabs">
+              <button class="tab active" onclick="setNavRange('1M',this)">1M</button>
+              <button class="tab" onclick="setNavRange('3M',this)">3M</button>
+              <button class="tab" onclick="setNavRange('6M',this)">6M</button>
+              <button class="tab" onclick="setNavRange('1Y',this)">1Y</button>
+            </div>
+          </div>
+          <canvas id="navChart" height="180"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Sector Allocation</div>
+          </div>
+          <canvas id="sectorChart" height="200"></canvas>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card chart-wide">
+          <div class="chart-header">
+            <div class="chart-title">Portfolio vs NIFTY 100</div>
+          </div>
+          <canvas id="perfChart" height="160"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Risk Metrics</div>
+          </div>
+          <div id="riskMetrics" class="risk-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Portfolio View -->
+    <div id="view-portfolio" class="view">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Holdings</h1>
+          <p class="page-sub">Current portfolio positions</p>
+        </div>
+        <button class="btn-primary" onclick="showAddTransaction()">+ Add Trade</button>
+      </div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <input type="text" id="holdingsSearch" placeholder="Search stock…" class="search-input" oninput="filterHoldings()" />
+          <div class="table-meta" id="holdingsCount">0 positions</div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="holdingsTable">
+            <thead>
+              <tr>
+                <th>Stock</th>
+                <th>Sector</th>
+                <th class="num">Qty</th>
+                <th class="num">Avg Cost</th>
+                <th class="num">LTP</th>
+                <th class="num">Invested</th>
+                <th class="num">Current</th>
+                <th class="num">P&L</th>
+                <th class="num">P&L %</th>
+                <th class="num">Weight</th>
+              </tr>
+            </thead>
+            <tbody id="holdingsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Stock Allocation Chart -->
+      <div class="chart-card mt-6">
+        <div class="chart-header"><div class="chart-title">Stock Allocation</div></div>
+        <canvas id="allocationChart" height="120"></canvas>
+      </div>
+    </div>
+
+    <!-- Transactions View -->
+    <div id="view-transactions" class="view">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Transactions</h1>
+          <p class="page-sub">Trade history</p>
+        </div>
+        <button class="btn-primary" onclick="showAddTransaction()">+ Add Trade</button>
+      </div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <input type="text" id="txSearch" placeholder="Search…" class="search-input" oninput="filterTransactions()" />
+          <select id="txFilter" class="filter-select" onchange="filterTransactions()">
+            <option value="">All</option>
+            <option value="BUY">BUY</option>
+            <option value="SELL">SELL</option>
+          </select>
+          <div class="table-meta" id="txCount">0 transactions</div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="txTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Stock</th>
+                <th>Action</th>
+                <th class="num">Qty</th>
+                <th class="num">Price</th>
+                <th class="num">Amount</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="txTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics View -->
+    <div id="view-analytics" class="view">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Analytics</h1>
+          <p class="page-sub">Performance & risk analysis</p>
+        </div>
+      </div>
+
+      <div class="analytics-grid">
+        <div class="card">
+          <div class="card-label">Volatility (Ann.)</div>
+          <div class="card-value" id="aVolatility">—</div>
+          <div class="card-sub">Annualised std deviation</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Sharpe Ratio</div>
+          <div class="card-value" id="aSharpe">—</div>
+          <div class="card-sub">Risk-adjusted return</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Max Drawdown</div>
+          <div class="card-value" id="aDrawdown">—</div>
+          <div class="card-sub">Peak to trough decline</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Tracking Error</div>
+          <div class="card-value" id="aTracking">—</div>
+          <div class="card-sub">vs NIFTY 100</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Beta</div>
+          <div class="card-value" id="aBeta">—</div>
+          <div class="card-sub">Market sensitivity</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Alpha</div>
+          <div class="card-value" id="aAlpha">—</div>
+          <div class="card-sub">Excess return</div>
+        </div>
+      </div>
+
+      <div class="charts-row mt-6">
+        <div class="chart-card chart-wide">
+          <div class="chart-header"><div class="chart-title">Returns Comparison</div></div>
+          <canvas id="returnsChart" height="180"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div class="chart-title">Drawdown Chart</div></div>
+          <canvas id="drawdownChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rebalance View -->
+    <div id="view-rebalance" class="view">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Rebalancing</h1>
+          <p class="page-sub">Compare current vs target weights</p>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table class="data-table" id="rebalanceTable">
+            <thead>
+              <tr>
+                <th>Stock</th>
+                <th class="num">Current Weight</th>
+                <th class="num">Target Weight</th>
+                <th class="num">Deviation</th>
+                <th>Action</th>
+                <th class="num">Suggested Qty</th>
+              </tr>
+            </thead>
+            <tbody id="rebalanceTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings View -->
+    <div id="view-settings" class="view">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Settings</h1>
+          <p class="page-sub">Configure your portfolio tracker</p>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h2 class="settings-section-title">Google Sheets Integration</h2>
+        <p class="settings-desc">Enter your Google Apps Script web app URL to connect your portfolio data.</p>
+        <div class="settings-field">
+          <label>Apps Script Web App URL</label>
+          <input type="url" id="apiUrl" class="settings-input" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec" />
+        </div>
+        <button class="btn-primary" onclick="saveSettings()">Save & Test Connection</button>
+        <div id="connStatus" class="conn-status"></div>
+      </div>
+
+      <div class="settings-card">
+        <h2 class="settings-section-title">NAV Configuration</h2>
+        <div class="settings-row">
+          <div class="settings-field">
+            <label>Total Units Issued</label>
+            <input type="number" id="totalUnits" class="settings-input" value="50000" />
+          </div>
+          <div class="settings-field">
+            <label>Initial NAV (₹)</label>
+            <input type="number" id="initialNav" class="settings-input" value="10" />
+          </div>
+          <div class="settings-field">
+            <label>Risk-Free Rate (%)</label>
+            <input type="number" id="riskFreeRate" class="settings-input" value="6.5" step="0.1" />
+          </div>
+        </div>
+        <button class="btn-primary" onclick="saveConfig()">Save Configuration</button>
+      </div>
+
+      <div class="settings-card">
+        <h2 class="settings-section-title">Sample Data</h2>
+        <p class="settings-desc">Load sample data to preview the dashboard without a Google Sheets connection.</p>
+        <button class="btn-secondary" onclick="loadSampleData()">Load Sample Data</button>
+        <button class="btn-danger" onclick="clearData()">Clear All Data</button>
+      </div>
+
+      <div class="settings-card">
+        <h2 class="settings-section-title">Google Sheets Setup Guide</h2>
+        <div class="setup-steps" id="setupGuide"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Add Transaction Modal -->
+  <div id="txModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add Transaction</h3>
+        <button onclick="closeTxModal()" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-field">
+            <label>Date</label>
+            <input type="date" id="txDate" class="form-input" />
+          </div>
+          <div class="form-field">
+            <label>Action</label>
+            <select id="txAction" class="form-input">
+              <option value="BUY">BUY</option>
+              <option value="SELL">SELL</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Stock Symbol</label>
+            <input type="text" id="txStock" class="form-input" placeholder="e.g. RELIANCE" list="stockList" />
+            <datalist id="stockList"></datalist>
+          </div>
+          <div class="form-field">
+            <label>Quantity</label>
+            <input type="number" id="txQty" class="form-input" placeholder="0" min="1" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Price (₹)</label>
+            <input type="number" id="txPrice" class="form-input" placeholder="0.00" step="0.05" />
+          </div>
+          <div class="form-field">
+            <label>Amount (₹)</label>
+            <input type="text" id="txAmount" class="form-input" readonly placeholder="Auto-calculated" />
+          </div>
+        </div>
+        <div id="txError" class="tx-error hidden"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeTxModal()">Cancel</button>
+        <button class="btn-primary" onclick="addTransaction()">Add Transaction</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
